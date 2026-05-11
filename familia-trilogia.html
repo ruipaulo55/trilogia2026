@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏔️ Trilogia Suíça 2026 — Família</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#0d0d0d;color:white;min-height:100vh}
+.hdr{background:#1a1a1a;border-bottom:3px solid #c0392b;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.hdr h1{font-size:18px;font-weight:800;letter-spacing:2px}
+.hdr h1 span{color:#c0392b}
+.hdr h1 em{color:#d4a017;font-style:normal}
+.status-pill{display:flex;align-items:center;gap:5px;background:#111;border-radius:20px;padding:5px 10px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-on{background:#2ecc71;animation:pulsar 2s infinite}
+.dot-off{background:#e74c3c}
+@keyframes pulsar{0%,100%{opacity:1}50%{opacity:.3}}
+.ultima-att{font-size:10px;color:#888;text-align:center;padding:6px;background:#0a0a0a;border-bottom:1px solid #1a1a1a}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}
+@media(min-width:600px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card{background:#1a1a1a;border-radius:8px;padding:10px;border:1px solid #222;text-align:center}
+.card-lbl{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.card-val{font-size:22px;font-weight:800;line-height:1}
+.card-sub{font-size:9px;color:#555;margin-top:3px}
+.map-wrap{margin:0 10px 10px;height:300px;border-radius:10px;overflow:hidden}
+@media(min-width:600px){.map-wrap{height:400px}}
+#mapa-familia{height:100%}
+.hist{padding:0 10px 20px}
+.hist-title{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #1a1a1a}
+.ev{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #0d0d0d}
+.ev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#2ecc71}
+.ev-hora{font-size:10px;color:#555;flex-shrink:0;width:40px}
+.ev-txt{font-size:11px;flex:1;color:#aaa}
+.ev-link{font-size:10px;color:#3498db;text-decoration:none}
+.nada{text-align:center;padding:30px;color:#444;font-size:13px}
+.btn-att{display:block;margin:0 10px 10px;padding:10px;background:#1a4a7a;border:none;border-radius:6px;color:white;font-size:12px;font-weight:700;cursor:pointer;width:calc(100% - 20px);text-align:center}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>TRILOGIA <span>SUÍÇA</span> <em>2026</em></h1>
+    <div style="font-size:9px;color:#444;margin-top:2px">Acompanhamento em tempo real</div>
+  </div>
+  <div class="status-pill">
+    <div class="dot dot-off" id="sdot"></div>
+    <span style="font-size:10px;color:#888" id="stxt">A ligar...</span>
+  </div>
+</div>
+
+<div class="ultima-att" id="ultima-att">⏳ A aguardar posição...</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-lbl">📍 Posição</div>
+    <div class="card-val" id="f-pos" style="font-size:13px;color:#3498db">---</div>
+    <div class="card-sub" id="f-gmaps"></div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">⛰️ Altitude</div>
+    <div class="card-val" id="f-alt" style="color:#2ecc71">---</div>
+    <div class="card-sub">metros</div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">📏 Distância</div>
+    <div class="card-val" id="f-dist" style="color:#d4a017">---</div>
+    <div class="card-sub">km percorridos</div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">⏱️ Tempo</div>
+    <div class="card-val" id="f-tempo" style="color:#9b59b6">--:--</div>
+    <div class="card-sub" id="f-vel">--- km/h</div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">🔋 Bateria</div>
+    <div class="card-val" id="f-bat" style="color:#2ecc71">--</div>
+    <div class="card-sub">nível</div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">🕐 Última posição</div>
+    <div class="card-val" id="f-hora" style="font-size:16px;color:#888">--:--</div>
+    <div class="card-sub" id="f-data">--/--</div>
+  </div>
+</div>
+
+<div class="map-wrap">
+  <div id="mapa-familia"></div>
+</div>
+
+<button class="btn-att" onclick="atualizarTudo()">🔄 Atualizar agora</button>
+
+<div class="hist">
+  <div class="hist-title">📋 Histórico de posições</div>
+  <div id="hist-lista"><div class="nada">Sem dados ainda — aguarda a primeira posição 📡</div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const FB_URL='https://trilogia2026-653dd-default-rtdb.europe-west1.firebasedatabase.app';
+
+// MAPA
+const mapa=L.map('mapa-familia',{center:[46.62,8.05],zoom:11,zoomControl:true});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(mapa);
+
+// Trilhos
+const trilhos=[
+  {pts:[[46.6244,8.0414],[46.6302,8.0201],[46.641,8.0549],[46.6479,8.0596],[46.651,8.065],[46.6533,8.072],[46.654,8.081],[46.6559,8.0889],[46.653,8.105],[46.646,8.129],[46.6626,7.8662]],cor:'#1a4a7a',nome:'T1 Grindelwald'},
+  {pts:[[46.5953,7.9088],[46.5945,7.9071],[46.581,7.895],[46.5762,7.9028],[46.5621,7.9055],[46.5598,7.9073],[46.578,7.92],[46.592,7.915]],cor:'#2d6a4f',nome:'T2 Cascatas'},
+  {pts:[[46.62,8.035],[46.6218,8.0312],[46.623,8.028],[46.628,8.02],[46.631,8.015],[46.633,8.01]],cor:'#c0392b',nome:'T3 Glaciar'}
+];
+trilhos.forEach(t=>L.polyline(t.pts,{color:t.cor,weight:3,opacity:.8,dashArray:'8,5'}).addTo(mapa).bindPopup(`<b style="color:${t.cor}">${t.nome}</b>`));
+
+let marcador=null, linhaPercurso=null, pontosPercurso=[];
+
+function atualizarMarcador(lat,lng){
+  const ico=L.divIcon({html:'<div style="width:20px;height:20px;background:#2ecc71;border:3px solid white;border-radius:50%;box-shadow:0 0 12px rgba(46,204,113,.8)"></div>',className:'',iconSize:[20,20],iconAnchor:[10,10]});
+  if(!marcador){
+    marcador=L.marker([lat,lng],{icon:ico,zIndexOffset:1000}).addTo(mapa).bindPopup('<b>🏃 Aqui está!</b>');
+    mapa.setView([lat,lng],14);
+  } else {
+    marcador.setLatLng([lat,lng]);
+    mapa.panTo([lat,lng]);
+  }
+  pontosPercurso.push([lat,lng]);
+  if(linhaPercurso) linhaPercurso.setLatLngs(pontosPercurso);
+  else if(pontosPercurso.length>1) linhaPercurso=L.polyline(pontosPercurso,{color:'#2ecc71',weight:2,opacity:.5}).addTo(mapa);
+}
+
+// LER POSIÇÃO FIREBASE
+async function lerPosicao(){
+  try{
+    const r=await fetch(`${FB_URL}/posicao.json`);
+    const d=await r.json();
+    if(!d||!d.lat) return;
+
+    // Atualizar status
+    document.getElementById('sdot').className='dot dot-on';
+    document.getElementById('stxt').textContent='Online';
+
+    // Verificar se é recente (< 30 min)
+    const minAtras=Math.floor((Date.now()-d.ts)/60000);
+    const tempoAtras=minAtras<1?'agora mesmo':minAtras<60?minAtras+' min atrás':(Math.floor(minAtras/60))+'h atrás';
+    document.getElementById('ultima-att').textContent=`📍 Última posição: ${tempoAtras} · ${d.hora||'--:--'}`;
+
+    if(minAtras>30){
+      document.getElementById('sdot').className='dot dot-off';
+      document.getElementById('stxt').textContent='Sem sinal há '+tempoAtras;
+    }
+
+    // Atualizar cards
+    document.getElementById('f-pos').textContent=d.lat.toFixed(4)+', '+d.lng.toFixed(4);
+    document.getElementById('f-gmaps').innerHTML=`<a href="https://maps.google.com/?q=${d.lat},${d.lng}" target="_blank" style="color:#3498db;font-size:9px">Ver no Google Maps</a>`;
+    document.getElementById('f-alt').textContent=d.alt?d.alt+'m':'---';
+    document.getElementById('f-dist').textContent=d.dist?d.dist+' km':'0.0 km';
+    document.getElementById('f-tempo').textContent=d.tempo||'--:--';
+    document.getElementById('f-vel').textContent=(d.vel||0)+' km/h';
+    document.getElementById('f-bat').textContent=d.bat||'--';
+    document.getElementById('f-bat').style.color=parseInt(d.bat)<20?'#e74c3c':parseInt(d.bat)<50?'#d4a017':'#2ecc71';
+    document.getElementById('f-hora').textContent=d.hora||'--:--';
+    document.getElementById('f-data').textContent=d.data||'--/--';
+
+    atualizarMarcador(d.lat,d.lng);
+
+  }catch(e){
+    document.getElementById('sdot').className='dot dot-off';
+    document.getElementById('stxt').textContent='Sem ligação';
+  }
+}
+
+// LER HISTÓRICO
+async function lerHistorico(){
+  try{
+    const r=await fetch(`${FB_URL}/historico.json?orderBy="$key"&limitToLast=10`);
+    const d=await r.json();
+    if(!d){document.getElementById('hist-lista').innerHTML='<div class="nada">Sem histórico ainda 📡</div>';return;}
+
+    const entradas=Object.values(d).reverse();
+    document.getElementById('hist-lista').innerHTML=entradas.map(e=>`
+      <div class="ev">
+        <div class="ev-dot"></div>
+        <div class="ev-hora">${e.hora||'--:--'}</div>
+        <div class="ev-txt">📍 ${e.lat?.toFixed(4)||'--'}, ${e.lng?.toFixed(4)||'--'} · ${e.alt||0}m · ${e.dist||0}km</div>
+        <a href="https://maps.google.com/?q=${e.lat},${e.lng}" target="_blank" class="ev-link">🗺️</a>
+      </div>
+    `).join('');
+  }catch(e){}
+}
+
+function atualizarTudo(){
+  lerPosicao();
+  lerHistorico();
+  document.getElementById('ultima-att').textContent='🔄 A atualizar...';
+}
+
+// Atualizar automaticamente a cada 30 segundos
+setInterval(atualizarTudo, 30000);
+atualizarTudo();
+</script>
+</body>
+</html>
